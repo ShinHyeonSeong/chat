@@ -1,0 +1,36 @@
+# ============================================================
+# application-docker.yml — Docker 환경 전용 설정
+# ============================================================
+#
+# [Spring Profile이란?]
+#   Spring Boot는 application-{프로파일명}.yml 파일을 환경별로 나눌 수 있습니다.
+#   docker-compose.yml에서 SPRING_PROFILES_ACTIVE=docker 로 설정하면
+#   이 파일이 application.yml 위에 "덮어쓰기(override)" 됩니다.
+#
+# [왜 별도 파일이 필요할까요?]
+#   로컬 개발 환경 (application.yml):
+#     - datasource.url: jdbc:mariadb://127.0.0.1:3306/...  ← 내 PC의 MariaDB
+#     - redis.host: localhost                               ← 내 PC의 Redis
+#
+#   Docker 환경 (이 파일):
+#     - datasource.url: jdbc:mariadb://mariadb:3306/...    ← 컨테이너 서비스명
+#     - redis.host: redis                                  ← 컨테이너 서비스명
+#
+#   Docker 네트워크에서는 "localhost"가 컨테이너 자기 자신을 가리킵니다.
+#   다른 컨테이너에 접근하려면 docker-compose.yml에 정의한 서비스 이름을 씁니다.
+# ============================================================
+
+spring:
+  datasource:
+    # "mariadb" = docker-compose.yml의 서비스 이름
+    # Docker 내부 DNS가 자동으로 해당 컨테이너의 IP로 변환해줍니다.
+    url: jdbc:mariadb://mariadb:3306/chat?useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: "3284"
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  data:
+    redis:
+      # "redis" = docker-compose.yml의 서비스 이름
+      host: redis
+      port: 6379

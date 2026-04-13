@@ -4,15 +4,16 @@ import com.shin.chat.domain.dto.LoginRequestDto;
 import com.shin.chat.domain.dto.LoginResponseDto;
 import com.shin.chat.domain.dto.RefreshTokenRequestDto;
 import com.shin.chat.domain.entity.UserEntity;
+import com.shin.chat.domain.entity.UserRoleEntity;
+import com.shin.chat.domain.entity.UserStatusEntity;
 import com.shin.chat.domain.mapper.UserMapper;
-import com.shin.chat.exception.DuplicateUsernameException;
-import com.shin.chat.exception.InvalidPasswordException;
-import com.shin.chat.exception.InvalidTokenException;
-import com.shin.chat.exception.TokenExpiredException;
-import com.shin.chat.exception.UserNotFoundException;
+import com.shin.chat.exception.*;
+import com.shin.chat.exception.dto.ErrorCode;
 import com.shin.chat.jwt.JwtManager;
 import com.shin.chat.redis.RedisTokenService;
 import com.shin.chat.repository.UserRepository;
+import com.shin.chat.repository.UserRoleRepository;
+import com.shin.chat.repository.UserStatusRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +25,8 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final UserStatusRepository userStatusRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtManager jwtManager;
     private final RedisTokenService redisTokenService;
@@ -36,9 +39,18 @@ public class UserService {
         if (userRepository.existsByUsername(request.getUsername()))
             throw new DuplicateUsernameException();
 
-        // 2. 비밀번호 암호화 후 저장
+        // 2. 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(request.getPassword());
-        userRepository.save(new UserEntity(request.getUsername(), encodedPassword));
+
+        // 3. 기본 role/status 조회
+        UserRoleEntity defaultRole = userRoleRepository.findByName("USER")
+                .orElseThrow(() -> new CustomException(ErrorCode.INTERNAL_SERVER_ERROR));
+        UserStatusEntity defaultStatus = userStatusRepository.findByName("ACTIVE")
+                .orElseThrow(() -> new CustomException(ErrorCode.INTERNAL_SERVER_ERROR));
+
+        // 4. 저장
+        userRepository.save(new UserEntity(request.getUsername(), encodedPassword, defaultRole, defaultStatus));
+
     }
 
     // 로그인

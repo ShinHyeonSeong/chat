@@ -18,42 +18,36 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 로그인 ID
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
-    // 비밀번호 (암호화 저장)
     @Column(nullable = false)
     private String password;
 
-    // 권한 (USER, ADMIN)
-    @Column(length = 20)
-    private String role;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    private UserRoleEntity role;
 
-    // 계정 상태 (ACTIVE, BANNED 등)
-    @Column(length = 20)
-    private String status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id", nullable = false)
+    private UserStatusEntity status;
 
-    // 생성 시각 (자동 설정)
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    // 생성자
-    public UserEntity(String username, String password) {
+    public UserEntity(String username, String password, UserRoleEntity role, UserStatusEntity status) {
         this.username = username;
         this.password = password;
-        this.role = "USER";
-        this.status = "ACTIVE";
+        this.role = role;
+        this.status = status;
     }
 
-    // 비밀번호 변경 (추후 사용)
     public void changePassword(String password) {
         this.password = password;
     }
 
-    // 상태 변경 (관리자 기능 대비)
-    public void changeStatus(String status) {
+    public void changeStatus(UserStatusEntity status) {
         this.status = status;
     }
 }

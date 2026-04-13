@@ -22,7 +22,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName()));
         /**
          * Spring Security 에서는 사용자 권한을 GrantedAuthority 인터페이스를 구현한 객체로 표현함이 요구된다.
          * SimpleGrantedAuthority 클래스는 GrantedAuthority 인터페이스를 구현한 클래스 중 하나로,

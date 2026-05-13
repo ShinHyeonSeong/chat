@@ -56,11 +56,6 @@ dependencies {
 	// lombok
 	compileOnly 'org.projectlombok:lombok'
 
-	// Mapper 의존성. Lombok과 함께 사용할 경우 Lombok processor보다 아래에 위치해야 함
-	implementation 'org.mapstruct:mapstruct:1.5.5.Final'
-	annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
-	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
-
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'

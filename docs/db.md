@@ -193,6 +193,6 @@ CREATE TABLE IF NOT EXISTS `message` (
 --     - 미읽음 수 집계 쿼리에 최적화된 인덱스.
 --       WHERE room_id = ? AND id > last_read_message_id
 --       id는 AUTO_INCREMENT이므로 id 범위 = 시간 범위와 동일하다.
---       PK(id) 단독으로는 room_id 필터를 커버하지 못하므로 복합 인덱스가 필요하다.
+--       PK(id)  단독으로는 room_id 필터를 커버하지 못하므로 복합 인덱스가 필요하다.
 --   idx_message_sender (sender_id)
 --     - 특정 사용자가 보낸 메시지 조회 시 사용. FK 컬럼은 인덱스가 없으면 full scan 발생.

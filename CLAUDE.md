@@ -51,14 +51,14 @@
 **레이어 구조:**
 - `controller/` → `service/` → `repository/` → MariaDB (`chat` DB, 포트 3306)
 - `domain/entity/` — JPA 엔티티
-- `domain/dto/` — 요청/응답 DTO; `domain/mapper/` — MapStruct를 이용한 엔티티↔DTO 변환
+- `domain/dto/` — 요청/응답 DTO
 - `exception/` — `ErrorCode` enum을 가진 `CustomException` 기반 클래스; `GlobalExceptionHandler` (@RestControllerAdvice)가 `ErrorResponseDto` 반환
 - `jwt/` — `JwtManager` (HS256, 만료 1시간), `JwtAuthenticationFilter` (Authorization 헤더에서 Bearer 토큰 추출), `SecurityConfig`, `CustomUserDetails`/`CustomUserDetailsService`
 
-**인프라 의존성** (`application.yml`에 설정되어 있으나 아직 미구현):
-- Redis (`localhost:6379`) — 캐싱
-- Apache Kafka — 대용량 메시지 처리
-- WebSocket — 실시간 채팅
+**인프라 의존성:**
+- Redis (`localhost:6379`) — RefreshToken 저장 구현 완료; 채팅 안읽음 수 미구현
+- Apache Kafka — 미구현 (Phase 4 예정)
+- WebSocket — 미구현 (Phase 3 예정)
 
 ## 참조
 
@@ -71,6 +71,7 @@
 - [JWT 패키지 구조 및 필터 동작 원리](src/main/java/com/shin/chat/jwt/jwt.md)
 - [DB 모델링](docs/db.md)
 - [API 테스트 요청 모음](docs/api-test.md)
+- [채팅 기능 아키텍처 및 구현 순서](docs/chat.md)
 
 ## 현재 상태
 
@@ -78,5 +79,5 @@
 - `application.yml`에 DB 비밀번호·JWT 시크릿 하드코딩됨 (**보안 취약점** — 추후 `application-local.yml`로 분리 예정)
 - `UserDto`는 비어 있음; 실제 인증에 사용되는 DTO는 `LoginRequestDto` (username/password), `LoginResponseDto` (token)
 - `ServletInitializer`를 통해 외부 서블릿 컨테이너 배포용 WAR 패키징 설정됨
-- DB 스키마 변경으로 MariaDB 테이블 재생성 필요 (기존 테이블 DROP 후 `docs/db.md` 스키마 적용)
-- `UserEntity`의 `role`/`status`가 코드 테이블 FK로 변경됨 — `ddl-auto: validate` 통과 여부 미확인
+- 채팅 Phase 1 완료: 엔티티(`RoomTypeEntity`, `ChatRoomEntity`, `ChatRoomMemberEntity`, `MessageEntity`) + `ErrorCode` 6개 추가, `ddl-auto: validate` 통과 확인
+- 채팅 Phase 2 미구현: Repository, Service, REST API (`docs/chat.md` 참조)

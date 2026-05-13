@@ -6,7 +6,6 @@ import com.shin.chat.domain.dto.RefreshTokenRequestDto;
 import com.shin.chat.domain.entity.UserEntity;
 import com.shin.chat.domain.entity.UserRoleEntity;
 import com.shin.chat.domain.entity.UserStatusEntity;
-import com.shin.chat.domain.mapper.UserMapper;
 import com.shin.chat.exception.*;
 import com.shin.chat.exception.dto.ErrorCode;
 import com.shin.chat.jwt.JwtManager;
@@ -30,7 +29,6 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtManager jwtManager;
     private final RedisTokenService redisTokenService;
-    private final UserMapper userMapper;
 
     // 회원 가입
     public void signup(LoginRequestDto request) {

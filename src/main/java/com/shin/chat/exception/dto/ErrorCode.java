@@ -11,7 +11,13 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류"),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "잘못된 토큰 형식입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
-    DUPLICATE_USERNAME(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
+    DUPLICATE_USERNAME(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
+    ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
+    NOT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "채팅방 멤버가 아닙니다."),
+    ALREADY_ROOM_MEMBER(HttpStatus.CONFLICT, "이미 채팅방 멤버입니다."),
+    INVALID_ROOM_TYPE(HttpStatus.BAD_REQUEST, "잘못된 채팅방 유형입니다."),
+    MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
+    WEBSOCKET_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "WebSocket 인증에 실패했습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

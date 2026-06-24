@@ -1,0 +1,32 @@
+server:
+  port: 8003
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  jpa:
+    open-in-view: false
+    hibernate:
+      #?? ???? DB ???
+      hbm2ddl: update
+      ddl-auto: validate
+      show-sql: true
+      #query? ???? ????
+      format_sql: true
+
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://127.0.0.1:3306/chat?useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 3284
+    jdbc: mysql://localhost:3306/chat?useSSL=false&allowPublicKeyRetrieval=true
+
+jwt:
+  secret: +1#uw1*SE+M%xcb7Vo#QIS5E18JUL~ALL.zXX>Su[,OC-jl_PG!BATt!=9MuqwyR
+  token:
+    access-expiration: 86400000 #1000 * 60 * 60 * 24 1일
+    refresh-expiration: 432000000 #1000 * 60 * 60 * 24 * 5 5일
+
+

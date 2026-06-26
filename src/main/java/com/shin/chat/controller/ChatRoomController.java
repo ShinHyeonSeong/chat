@@ -23,7 +23,8 @@ public class ChatRoomController {
 
     @PostMapping("/direct")
     public ResponseEntity<ChatRoomDetailDto> createDirectRoom(
-            @AuthenticationPrincipal CustomUserDetails userDetails, // spring security 인증 객체 어노테이션
+            // spring security context에 저장된 인증객체 (현재 로그인한 유저)를 가져온다.
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody CreateDirectRoomRequestDto request) {
                 return ResponseEntity.status(HttpStatus.CREATED)
                         .body(chatRoomService.createDirectRoom(userDetails.getUser(), request.getTargetUserId()));

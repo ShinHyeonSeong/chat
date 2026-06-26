@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "chat_room")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // 지연 로딩 사용으로 인한 protected 범위 설정
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatRoomEntity {
 
     @Id

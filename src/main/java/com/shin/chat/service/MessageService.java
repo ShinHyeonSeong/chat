@@ -5,17 +5,19 @@ import com.shin.chat.domain.dto.chat.MessageResponseDto;
 import com.shin.chat.domain.entity.ChatRoomEntity;
 import com.shin.chat.domain.entity.MessageEntity;
 import com.shin.chat.domain.entity.UserEntity;
+import com.shin.chat.event.MessageSavedEvent;
 import com.shin.chat.exception.NotRoomMemberException;
 import com.shin.chat.exception.RoomNotFoundException;
 import com.shin.chat.repository.ChatRoomMemberRepository;
 import com.shin.chat.repository.ChatRoomRepository;
 import com.shin.chat.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -23,11 +25,12 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class MessageService {
 
+    private final ApplicationEventPublisher eventPublisher;
     private final MessageRepository messageRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
 
-    // 채팅방 메세지 목록 조회 . 커서 페이징 기법 사용
+    // 채팅방 메세지 목록 조회. 커서 페이징 기법 사용
     // cursorId null → 첫 페이지(최신순), non-null → 해당 ID 이전 메시지부터 조회
     public MessagePageDto getMessages(UserEntity me, Long roomId, Long cursorId, int size) {
         ChatRoomEntity room = chatRoomRepository.findById(roomId)
@@ -36,7 +39,7 @@ public class MessageService {
             throw new NotRoomMemberException();
 
         // size+1 개를 fetch해서 다음 페이지 존재 여부를 판단
-        List<MessageEntity> messageEntityList = new LinkedList<>();
+        List<MessageEntity> messageEntityList = new ArrayList<>();
         if (cursorId == null) {
             messageEntityList = messageRepository.findByChatRoomOrderByIdDesc(
                     room, PageRequest.of(0, size + 1));
@@ -45,7 +48,7 @@ public class MessageService {
             messageEntityList = messageRepository.findByChatRoomAndIdLessThanOrderByIdDesc(
                     room, cursorId, PageRequest.of(0, size + 1));
                     // 커서 기법이므로 오프셋 항상 0
-                    // IdLessThan으로 cursorId보다 작은 페이지만 size + 1 개 만큼 만환
+                    // IdLessThan으로 cursorId보다 작은 페이지만 size + 1 개 만큼 반환
                     /*
                         SELECT * FROM message
                         WHERE chat_room_id = chatroomId
@@ -57,13 +60,13 @@ public class MessageService {
 
         // 조회 후 size +1개가 있으면 페이지 1개 버림. size 미만일 경우 마지막 페이지로 간주
         boolean hasNext = messageEntityList.size() > size;
-        List<MessageEntity> page = new LinkedList<>();
 
         // 현재 페이지 마지막 메시지의 id를 다음 요청의 cursorId로 사용. 마지막 페이지라면 null
         Long nextCursor = null;
 
+        List<MessageEntity> page = new ArrayList<>();
         if (hasNext) {
-            page = messageEntityList.subList(0, size);
+            page = messageEntityList.subList(0, size); // 기존 30개 message만 사용
             nextCursor = page.get(page.size() - 1).getId();
         } else {
             page = messageEntityList;
@@ -79,26 +82,31 @@ public class MessageService {
         return messageRepository.save(new MessageEntity(room, sender, content));
     }
 
-    // WebSocket 핸들러(ChatWebSocketController)에서 호출한다.
-    // roomId만 알고 있는 상황에서 아래 세 작업을 단일 트랜잭션 안에서 처리한다:
-    //   1. 채팅방 조회 + 멤버 검증
-    //   2. MessageEntity 저장 (INSERT)
-    //   3. ChatRoomEntity.lastMessageId / lastMessageAt 갱신
-    //
-    // 3번이 같은 트랜잭션 안에 있어야 하는 이유:
-    // JPA Dirty Checking은 영속성 컨텍스트(Persistence Context) 안에서 관리되는 엔티티의
-    // 필드 변경만 감지한다. 트랜잭션 밖에서 room을 로드하면 Detached 상태가 되어
-    // room.updateLastMessage() 를 호출해도 변경이 DB에 반영되지 않는다.
-    // 이 메서드 안에서 room을 직접 조회해야 Managed 상태로 유지되며,
-    // 트랜잭션 커밋 시 UPDATE 쿼리가 자동 발행된다 (별도 save(room) 호출 불필요).
+
+    // 메세지 저장. ChatRoom의 lastMessage는 같은 트랜잭션 내부에서 Dirty Checking으로 함께 update 한다.
     @Transactional
     public MessageResponseDto saveMessageToRoom(UserEntity sender, Long roomId, String content) {
         ChatRoomEntity room = chatRoomRepository.findById(roomId)
                 .orElseThrow(RoomNotFoundException::new);
         if (!chatRoomMemberRepository.existsByChatRoomAndUser(room, sender))
             throw new NotRoomMemberException();
+        // 메세지 저장
         MessageEntity saved = messageRepository.save(new MessageEntity(room, sender, content));
+
+        // 해당 채팅방의 마지막 메세지 갱신
         room.updateLastMessage(saved.getId(), saved.getCreatedAt());
+
+        // 안읽음 수를 올릴 대상(발신자 제외)을 트랜잭션 안에서 미리 계산한다.
+        // member.getUser().getId()는 식별자만 접근하므로 LAZY 프록시를 초기화하지 않아 N+1이 없다.
+        List<Long> recipientIds = chatRoomMemberRepository.findByChatRoom(room).stream()
+                .map(member -> member.getUser().getId())
+                .filter(userId -> !userId.equals(sender.getId()))
+                .toList();
+
+        // 실제 Redis 반영은 트랜잭션 커밋 이후(MessageSavedEventListener)로 미룬다.
+        // 저장이 롤백되면 이벤트도 발행되지 않으므로 Redis 카운터 불일치를 막는다.
+        eventPublisher.publishEvent(new MessageSavedEvent(roomId, recipientIds));
+
         return toDto(saved);
     }
 

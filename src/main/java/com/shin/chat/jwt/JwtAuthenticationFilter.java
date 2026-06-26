@@ -33,7 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("1. {}", authHeader);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            // 토큰 없음 → 인증 없이 다음 필터로 진행 (Security가 접근 제어)
+            // 토큰 없음 - 인증 없이 SecurityFilterChain. Config에 허용된 엔드포인트인지 검사함.
+            log.info("Header 없음. SecurityFilterChain 엔드포인트 검사");
             filterChain.doFilter(request, response);
             return;
         }

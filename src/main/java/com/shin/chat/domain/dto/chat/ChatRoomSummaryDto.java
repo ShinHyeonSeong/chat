@@ -6,7 +6,7 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 // GET /api/rooms 채팅방 목록 응답 DTO.
-// 간소화된 필요 정보만을 제공한다.
+// 간소화된 필요 정보만을 제공한다. PC 카카오톡의 채팅 목록을 생각하면 된다.
 // @AllArgsConstructor: 서비스가 모든 값을 한 번에 알고 있으므로 부분 생성이 필요 없다. Setter 없이 불변 객체로 유지한다.
 @Getter
 @AllArgsConstructor

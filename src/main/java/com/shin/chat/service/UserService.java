@@ -48,7 +48,6 @@ public class UserService {
 
         // 4. 저장
         userRepository.save(new UserEntity(request.getUsername(), encodedPassword, defaultRole, defaultStatus));
-
     }
 
     // 로그인
@@ -90,7 +89,7 @@ public class UserService {
         // 3. Redis 저장값과 일치 여부 확인
         String storedUser = redisTokenService.getRefreshToken(username);
         if (storedUser == null)
-            throw new TokenExpiredException();
+            throw new RefreshTokenExpiredException();   // RefreshToken 만료. 클라이언트는 사용자에게 재 로그인을 요구.
         if (!refreshToken.equals(storedUser))
             throw new InvalidTokenException();
 

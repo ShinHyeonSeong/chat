@@ -12,8 +12,8 @@ public class RoomTypeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    @Column(nullable = false, unique = true, length = 20) // 유니크 키 등록 필요한지 검토.
+    @Column(nullable = false, unique = true, length = 20)
     private String name;
 }

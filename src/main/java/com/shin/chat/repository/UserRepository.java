@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<UserEntity, Long> {
+    // 권한 설정을 위해 호출부에서 userRole을 조회함. 미리 fetch.
     @Query("SELECT u FROM UserEntity u JOIN FETCH u.role WHERE u.username = :username")
     Optional<UserEntity> findByUsername(@Param("username") String username);
 

@@ -3,8 +3,14 @@ package com.shin.chat.service;
 import com.shin.chat.domain.dto.chat.ChatRoomDetailDto;
 import com.shin.chat.domain.dto.chat.ChatRoomSummaryDto;
 import com.shin.chat.domain.dto.chat.CreateGroupRoomRequestDto;
-import com.shin.chat.domain.entity.*;
-import com.shin.chat.exception.*;
+import com.shin.chat.domain.entity.ChatRoomEntity;
+import com.shin.chat.domain.entity.ChatRoomMemberEntity;
+import com.shin.chat.domain.entity.RoomTypeEntity;
+import com.shin.chat.domain.entity.UserEntity;
+import com.shin.chat.exception.CustomException;
+import com.shin.chat.exception.NotRoomMemberException;
+import com.shin.chat.exception.RoomNotFoundException;
+import com.shin.chat.exception.UserNotFoundException;
 import com.shin.chat.exception.dto.ErrorCode;
 import com.shin.chat.redis.RedisUnreadService;
 import com.shin.chat.repository.*;
@@ -34,7 +40,8 @@ public class ChatRoomService {
         UserEntity userA = null;
         UserEntity userB = null;
 
-        if(me.getId() < targetUserId) {
+        // 1:1 채팅방. id가 작은 유저가 A를, 큰 유저가 B로 정해짐. 한 쌍으로 단일 채팅방 유지.
+        if(me.getId() < target.getId()) {
             userA = me;
             userB = target;
         } else {
@@ -42,9 +49,10 @@ public class ChatRoomService {
             userB = me;
         }
 
+        // 이미 있는 채팅방일 경우, 멱등성 적용하여 해당 채팅방 리턴
         Optional<ChatRoomEntity> chatRoomEntity = chatRoomRepository.findByUserAAndUserB(userA, userB);
         if(chatRoomEntity.isPresent()) {
-            return toDetailDto(chatRoomEntity.get());
+            return toDetailDto(chatRoomEntity.get(), me);
         }
 
         // Room Type 하드 코딩.
@@ -53,7 +61,7 @@ public class ChatRoomService {
         chatRoomRepository.save(room);
         chatRoomMemberRepository.save(new ChatRoomMemberEntity(room, userA));
         chatRoomMemberRepository.save(new ChatRoomMemberEntity(room, userB));
-        return toDetailDto(room);
+        return toDetailDto(room, me);
     }
 
     @Transactional
@@ -61,19 +69,20 @@ public class ChatRoomService {
         // Room Type 하드 코딩.
         RoomTypeEntity type = getRoomType("GROUP");
 
-        // 동일 멤버의 중복 그룹 채팅방 허용.
+        // ChatRoom 생성 및 저장. 동일 멤버의 중복 그룹 채팅방 허용.
         ChatRoomEntity room = ChatRoomEntity.createGroupRoom(type, me, memberList.getName());
         chatRoomRepository.save(room);
 
+        // ChatRoomMember 저장.
         chatRoomMemberRepository.save(new ChatRoomMemberEntity(room, me));
         for (Long userId : memberList.getInvitedUserIds()) {
             UserEntity invitee = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
             chatRoomMemberRepository.save(new ChatRoomMemberEntity(room, invitee));
         }
-        return toDetailDto(room);
+        return toDetailDto(room, me);
     }
 
-
+    // 1:1 채팅에서 유저 추가 초대 시 그룹 채팅방으로 변경되도록 수정 필요.
     @Transactional
     public ChatRoomDetailDto joinRoom(UserEntity me, Long roomId) {
         ChatRoomEntity room = chatRoomRepository.findById(roomId).orElseThrow(RoomNotFoundException::new);
@@ -86,7 +95,7 @@ public class ChatRoomService {
             throw new CustomException(ErrorCode.ALREADY_ROOM_MEMBER);
 
         chatRoomMemberRepository.save(new ChatRoomMemberEntity(room, me));
-        return toDetailDto(room);
+        return toDetailDto(room, me);
     }
 
     // 채팅방 목록 조회
@@ -101,28 +110,7 @@ public class ChatRoomService {
         ChatRoomEntity room = chatRoomRepository.findById(roomId).orElseThrow(RoomNotFoundException::new);
         if (!chatRoomMemberRepository.existsByChatRoomAndUser(room, me))
             throw new NotRoomMemberException();
-        return toDetailDto(room);
-    }
-
-    // ChatRoomEntity를 채팅방 상세정보인 DetailDto로 반환해주는 메서드
-    // 채팅방 종류에 따라 메개변수를 다르게 주도록 메서드 분리가 필요할 수도 있음.
-    ChatRoomDetailDto toDetailDto(ChatRoomEntity room) {
-        // 채팅방 멤버 목록 조회
-        List<ChatRoomDetailDto.MemberInfo> members = chatRoomMemberRepository.findByChatRoom(room)
-                .stream()
-                .map(m -> new ChatRoomDetailDto.MemberInfo(
-                        m.getUser().getId(),
-                        m.getUser().getUsername(),
-                        m.getJoinedAt()))
-                .toList();
-
-        return new ChatRoomDetailDto(
-                room.getId(),
-                room.getType().getName(),
-                room.getName(),
-                members,
-                room.getLastMessageId(),
-                room.getLastMessageAt());
+        return toDetailDto(room, me);
     }
 
     // 채팅방 요약 정보인 SummaryDto를 반환해주는 메서드.
@@ -138,8 +126,31 @@ public class ChatRoomService {
         // 안읽은 메시지 수 설정
         long unread = redisUnreadService.getUnread(me.getId(), room.getId());
 
-        return new ChatRoomSummaryDto(room.getId(), name, room.getType().getName(),
+        return new ChatRoomSummaryDto(room.getId(), room.getType().getName(), name,
                 lastContent, room.getLastMessageAt(), unread);
+    }
+
+    // ChatRoomEntity를 채팅방 상세정보인 DetailDto로 반환해주는 메서드
+    private ChatRoomDetailDto toDetailDto(ChatRoomEntity room, UserEntity me) {
+
+        // 채팅방 멤버 목록 조회
+        List<ChatRoomDetailDto.MemberInfo> members = chatRoomMemberRepository.findByChatRoom(room)
+                .stream()
+                .map(m -> new ChatRoomDetailDto.MemberInfo(
+                        m.getUser().getId(),
+                        m.getUser().getUsername(),
+                        m.getJoinedAt()))
+                .toList();
+
+        String name = resolveName(room, me);
+
+        return new ChatRoomDetailDto(
+                room.getId(),
+                room.getType().getName(),
+                name,
+                members,
+                room.getLastMessageId(),
+                room.getLastMessageAt());
     }
 
     // 채팅방 이름 포맷 과정

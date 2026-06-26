@@ -6,7 +6,7 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// 채팅방 상세 응답 DTO. 채팅방 입장시,상세 조회시 API에서 공통으로 사용한다.
+// 채팅방 상세 응답 DTO. 채팅방 입장시, 상세 조회시 API에서 공통으로 사용한다.
 @Getter
 @AllArgsConstructor
 public class ChatRoomDetailDto {
@@ -15,7 +15,6 @@ public class ChatRoomDetailDto {
     private String type;    // "ONE" / "GROUP"
 
     // ONE(1:1) 방은 name이 null이다 — 클라이언트는 members 목록에서 상대방을 식별한다.
-    // SummaryDto의 name(상대방 username 계산)과 의도가 다르다는 점에 주의.
     private String name;
 
     private List<MemberInfo> members;

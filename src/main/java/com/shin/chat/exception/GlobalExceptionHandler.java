@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice   // 전역 예외 처리 컨트롤러
 public class GlobalExceptionHandler {
 
-    // 커스텀 예외 처리
+    // 커스텀 예외 처리. CustomException 관련 에외를 모두 담당한다.
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ExceptionResponseDto> handleCustomException(CustomException e) {
 
@@ -22,10 +22,10 @@ public class GlobalExceptionHandler {
                 .body(ExceptionResponseDto.errorResponseDto(errorCode));
     }
 
-    // 커스텀 예외를 벗어난 예외
+    // 커스텀 예외를 벗어난 모든 예외. 각 예외 별 대처가 필요 시 추후 분할 필요.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ExceptionResponseDto> handleException(Exception e) {
-        log.error("전역 예외처리를 벗어남", e);
+        log.error("System error", e);
         return ResponseEntity
                 .internalServerError()
                 .body(ExceptionResponseDto.errorResponseDto(ErrorCode.INTERNAL_SERVER_ERROR));

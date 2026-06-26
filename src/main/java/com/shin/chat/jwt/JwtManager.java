@@ -30,7 +30,7 @@ public class JwtManager {
 
     private Key key;
 
-    // @Value 주입 완료 후 key 초기화 (필드 초기화 시점에는 SECRET_KEY가 null이므로 @PostConstruct 사용)
+    // 필드 초기화는 생성자보다 먼저 실행됨. 따라서 빈 생성, 의존성 주입이 끝난 직후 단 한 번 실행되는 @PostConstruct로 key를 초기화.
     @PostConstruct
     private void init() {
         this.key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());

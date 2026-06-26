@@ -40,8 +40,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         return http
-
                 // CSRF 공격 방어 비활성화
+                // 세션을 사용하지 않을 것이므로 공격자는 헤더에 Authoriaztion Header를 심을 수가 없다.
                 .csrf(csrf -> csrf.disable())
 
                 // 세션 관리 정책 비활성화
@@ -60,7 +60,7 @@ public class SecurityConfig {
                         // 허용하지 않으면 JwtAuthenticationFilter가 Bearer 토큰 없음으로 판단해 연결을 차단한다.
                         // 실제 사용자 인증은 StompChannelInterceptor가 CONNECT 프레임에서 별도로 수행하므로
                         // 여기서 열어두더라도 인증되지 않은 사용자가 채팅에 접근하지는 못한다.
-                        .requestMatchers("/login", "/signup", "/refresh", "/ws/**").permitAll()
+                        .requestMatchers("/login", "/signup", "/refresh", "/ws/**", "/test.html").permitAll()
                         .anyRequest().authenticated()   // 기타 경로는 인증된 사용자만 접근
                 )
 
@@ -69,7 +69,7 @@ public class SecurityConfig {
                         new JwtAuthenticationFilter(jwtManager, customUserDetailsService),
                         UsernamePasswordAuthenticationFilter.class
                 )
-                // JwtExceptionFilter를 JwtAuthenticationFilter 앞에 등록하여 예외 처리 필터를 감싼다.
+                // JwtExceptionFilter를 JwtAuthenticationFilter 앞에 등록하여 예외 처리 필터로 감싼다.
                 .addFilterBefore(
                         new JwtExceptionFilter(),
                         JwtAuthenticationFilter.class
